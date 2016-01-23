@@ -1,0 +1,135 @@
+Game.start();
+
+setTimeout(Game.start, 5000);
+
+var wordList;
+
+function readTextFile(file)
+{
+    var rawFile = new XMLHttpRequest();
+    rawFile.open("GET", file, false);
+    rawFile.onreadystatechange = function ()
+    {
+        if(rawFile.readyState === 4)
+        {
+            if(rawFile.status === 200 || rawFile.status == 0)
+            {
+                var allText = rawFile.responseText;
+                wordList = allText.split("\n");
+            }
+
+        }
+    };
+    rawFile.send(null);
+}
+
+readTextFile('words.txt');
+
+
+String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.split(search).join(replacement);
+};
+
+function beat(){
+
+    this.gameDone = false;
+
+    this.steps = 0;
+    this.wordL = Game.word().length;
+    this.notInclude = [];
+    this.inWord = [];
+    this.dic = wordList.slice();
+
+
+    this.generateRegex = function(){
+        var str = this.notInclude.join('');
+        return new RegExp(Game.word().replaceAll('*','[^'+ str +']'));
+    };
+
+    this.ask = function(char) {
+        var reply = Game.guess(char);
+        if(reply == true){
+            this.gameDone = true;
+        } else if (reply){
+            console.log(reply);
+            this.inWord.push(char);
+        }else{
+            this.notInclude.push(char);
+        }
+    };
+
+    this.generateMatch = function(){
+
+        var currentWord = Game.word();
+
+        var regex = this.generateRegex();
+
+        this.dic = this.dic.filter(function(word){
+            return currentWord.length == word.length && regex.exec(word) != null;
+        });
+
+        return this.dic;
+    };
+
+    this.generateMatch();
+
+    this.step = function(){
+        this.generateMatch();
+        this.ask(mode(this.dic.join(''), this.inWord));
+        this.steps++;
+        console.log(this.steps);
+    }
+}
+
+function mode(array, exclude)
+{
+
+    exclude.forEach(function(item){
+       array = array.replaceAll(item, '');
+    });
+
+    array = array.replaceAll();
+
+    if(array.length == 0)
+        return null;
+    var modeMap = {};
+    var maxEl = array[0], maxCount = 1;
+    for(var i = 0; i < array.length; i++)
+    {
+        var el = array[i];
+        if(modeMap[el] == null)
+            modeMap[el] = 1;
+        else
+            modeMap[el]++;
+        if(modeMap[el] > maxCount)
+        {
+            maxEl = el;
+            maxCount = modeMap[el];
+        }
+    }
+    return maxEl;
+}
+
+var globalMark = 0;
+
+function play() {
+    var maxAttemps = 12;
+
+    var juego = new beat();
+
+    for (var i = 0; i < maxAttemps; i++) {
+        juego.step();
+        if (juego.gameDone) {
+            globalMark++;
+            break;
+        }
+    }
+    Game.next();
+}
+
+function batchPlay(){
+    for(var i=0; i<50; i++){
+        play();
+    }
+}
